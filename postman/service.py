@@ -1,15 +1,19 @@
 import logging
+from smtplib import SMTPException
 
 import requests
-from django.core.mail import mail_admins
+from django.conf import settings
+from django.core.mail import send_mail
 
 from postman.models import Postman
 
 URL_USERS = "http://jsonplaceholder.typicode.com/users"
 
 
-def send_admins(message, check_user=None):
-    mail_admins(
+def send_message(message, check_user=None):
+    send_mail(
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=settings.ADMIN_EMAIL,
         subject=message,
         message=check_user,
         fail_silently=False
@@ -17,19 +21,19 @@ def send_admins(message, check_user=None):
 
 
 def check_email(message, email, pk):
+    logging.info("Start task")
+    connect_timeout, read_timeout = 5.0, 30.0
     try:
-        resp = requests.get(URL_USERS).json()
+        resp = requests.get(URL_USERS, timeout=(connect_timeout, read_timeout)).json()
     except requests.ConnectionError:
         logging.error("Нет коннекта до сервера")
         raise ConnectionError("Ошибка подключения")
     search_p = [p for p in resp if p["email"] == email]
-    send_admins(message, str(search_p))
+    try:
+        send_message(message, str(search_p))
+    except SMTPException as e:
+        logging.error("There was an error sending an email: ", e)
+        raise SMTPException("There was an error sending an email: ", e)
     email_db = Postman.objects.get(id=pk)
     email_db.sent = True
-    email_db.text = "Отправлено"
     email_db.save()
-    print(email_db.sent)
-    # email_db = Postman.objects.filter(id=pk).update(sent=True)
-    # print(email_db)
-    # email_db.sent = "fsddfsfd"
-
