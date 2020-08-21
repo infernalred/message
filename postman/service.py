@@ -4,6 +4,7 @@ from smtplib import SMTPException
 import requests
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db import transaction
 
 from postman.models import Postman
 
@@ -29,11 +30,15 @@ def check_email(message, email, pk):
         logging.error("Нет коннекта до сервера")
         raise ConnectionError("Ошибка подключения")
     search_p = [p for p in resp if p["email"] == email]
+    logging.info(f"Нашли емайл {search_p}")
     try:
         send_message(message, str(search_p))
     except SMTPException as e:
         logging.error("There was an error sending an email: ", e)
         raise SMTPException("There was an error sending an email: ", e)
-    email_db = Postman.objects.get(id=pk)
-    email_db.sent = True
-    email_db.save()
+    logging.info(f"Id письма {pk}")
+    with transaction.atomic():
+        email_db = Postman.objects.get(pk=pk)
+        email_db.sent = True
+        email_db.save()
+    logging.info("Письмо ", email_db.pk)

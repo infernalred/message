@@ -17,7 +17,8 @@ class PostmanView(CreateView):
 
     def form_valid(self, form):
         form.save()
+        print(form.instance.id)
         # check_email(form.instance.text, form.instance.email, form.instance.id)
-        check_send_email.delay(form.instance.text, form.instance.email,
-                               form.instance.id)
+        check_send_email.apply_async((form.instance.text, form.instance.email,
+                                      form.instance.id), countdown=20)
         return HttpResponseRedirect("/")
