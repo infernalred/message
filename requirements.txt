@@ -1,6 +1,6 @@
 Django~=3.1
 python-dotenv~=0.14.0
 requests~=2.24.0
-celery~=4.4.7
+celery~=5.2.0
 redis~=3.5.3
 psycopg2
